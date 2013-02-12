@@ -4,7 +4,8 @@ History
 0.8.4
 +++++
 
-* changed an error case to raise a FacepyError instead of a TypeError
+* Fixed a bug that caused a KeyError for signed requests that were missing
+  some keys for its "page" attribute.
 
 0.8.3
 +++++

@@ -1,22 +1,26 @@
 """Tests for the ``graph_api`` module."""
 
-import random
 import json
-from mock import patch, call, Mock as mock, MagicMock
+
 from nose.tools import *
+from mock import patch, MagicMock
 from requests.exceptions import ConnectionError
 
 from facepy import GraphAPI
 
+
 patch = patch('requests.session')
+
 
 def mock():
     global mock_request
 
     mock_request = patch.start()().request
 
+
 def unmock():
     patch.stop()
+
 
 @with_setup(mock, unmock)
 def test_get():
@@ -33,12 +37,41 @@ def test_get():
 
     graph.get('me')
 
-    mock_request.assert_called_with('GET', 'https://graph.facebook.com/me',
-        allow_redirects = True,
-        params = {
-          'access_token': '<access token>'
+    mock_request.assert_called_with(
+        'GET',
+        'https://graph.facebook.com/me',
+        allow_redirects=True,
+        params={
+            'access_token': '<access token>'
         }
     )
+
+
+@with_setup(mock, unmock)
+def test_get_with_nested_parameters():
+    graph = GraphAPI('<access token>')
+
+    mock_request.return_value.content = json.dumps({
+        'id': 1,
+        'name': 'Thomas \'Herc\' Hauk',
+        'first_name': 'Thomas',
+        'last_name': 'Hauk',
+        'link': 'http://facebook.com/herc',
+        'username': 'herc',
+    })
+
+    graph.get('me', foo={'bar': 'baz'})
+
+    mock_request.assert_called_with(
+        'GET',
+        'https://graph.facebook.com/me',
+        allow_redirects=True,
+        params={
+            'access_token': '<access token>',
+            'foo': '{"bar": "baz"}'
+        }
+    )
+
 
 @with_setup(mock, unmock)
 def test_get_with_fields():
@@ -52,9 +85,11 @@ def test_get_with_fields():
 
     graph.get('me', fields=['id', 'first_name', 'last_name'])
 
-    mock_request.assert_called_with('GET', 'https://graph.facebook.com/me',
-        allow_redirects = True,
-        params = {
+    mock_request.assert_called_with(
+        'GET',
+        'https://graph.facebook.com/me',
+        allow_redirects=True,
+        params={
             'access_token': '<access token>',
             'fields': 'id,first_name,last_name'
         }
@@ -62,13 +97,16 @@ def test_get_with_fields():
 
     graph.get('me', fields=('id', 'first_name', 'last_name'))
 
-    mock_request.assert_called_with('GET', 'https://graph.facebook.com/me',
-        allow_redirects = True,
-        params = {
+    mock_request.assert_called_with(
+        'GET',
+        'https://graph.facebook.com/me',
+        allow_redirects=True,
+        params={
             'access_token': '<access token>',
             'fields': 'id,first_name,last_name'
         }
     )
+
 
 @with_setup(mock, unmock)
 def test_forbidden_get():
@@ -77,6 +115,7 @@ def test_forbidden_get():
     mock_request.return_value.content = 'false'
 
     assert_raises(GraphAPI.FacebookError, graph.get, 'me')
+
 
 @with_setup(mock, unmock)
 def test_paged_get():
@@ -121,9 +160,7 @@ def test_paged_get():
     def side_effect(*args, **kwargs):
         response = responses.pop(0)
 
-        return MagicMock(
-            content = json.dumps(response)
-        )
+        return MagicMock(content=json.dumps(response))
 
     mock_request.side_effect = side_effect
 
@@ -133,6 +170,7 @@ def test_paged_get():
         pass
 
     assert_equal(index, 2)
+
 
 @with_setup(mock, unmock)
 def test_pagination_without_paging_next():
@@ -155,6 +193,7 @@ def test_pagination_without_paging_next():
         pass
 
     assert_equal(index, 0)
+
 
 @with_setup(mock, unmock)
 def test_get_with_errors():
@@ -185,6 +224,7 @@ def test_get_with_errors():
 
     assert_raises(GraphAPI.FacebookError, graph.get, 'me')
 
+
 @with_setup(mock, unmock)
 def test_fql():
     graph = GraphAPI('<access token>')
@@ -203,12 +243,15 @@ def test_fql():
     except GraphAPI.FacebookError:
         pass
 
-    mock_request.assert_called_with('GET', 'https://graph.facebook.com/fql?q=SELECT+id%2Cname%2Cfirst_name%2Clast_name%2Cusername+FROM+user+WHERE+uid%3Dme%28%29',
-        allow_redirects = True,
-        params = {
+    mock_request.assert_called_with(
+        'GET',
+        'https://graph.facebook.com/fql?q=SELECT+id%2Cname%2Cfirst_name%2Clast_name%2Cusername+FROM+user+WHERE+uid%3Dme%28%29',
+        allow_redirects=True,
+        params={
             'access_token': '<access token>'
         }
     )
+
 
 @with_setup(mock, unmock)
 def test_post():
@@ -219,17 +262,20 @@ def test_post():
     })
 
     graph.post(
-        path = 'me/feed',
-        message = 'He\'s a complicated man. And the only one that understands him is his woman'
+        path='me/feed',
+        message='He\'s a complicated man. And the only one that understands him is his woman'
     )
 
-    mock_request.assert_called_with('POST', 'https://graph.facebook.com/me/feed',
-        files = {},
-        data = {
+    mock_request.assert_called_with(
+        'POST',
+        'https://graph.facebook.com/me/feed',
+        files={},
+        data={
             'message': 'He\'s a complicated man. And the only one that understands him is his woman',
             'access_token': '<access token>'
         }
     )
+
 
 @with_setup(mock, unmock)
 def test_post_with_files():
@@ -238,9 +284,10 @@ def test_post_with_files():
     mock_request.return_value.content = 'true'
 
     graph.post(
-        path = 'me/photos',
-        source = open('tests/fixtures/parrot.jpg')
+        path='me/photos',
+        source=open('tests/fixtures/parrot.jpg')
     )
+
 
 @with_setup(mock, unmock)
 def test_forbidden_post():
@@ -250,20 +297,24 @@ def test_forbidden_post():
 
     assert_raises(GraphAPI.FacebookError, graph.post, 'me')
 
+
 @with_setup(mock, unmock)
 def test_delete():
     graph = GraphAPI('<access token>')
 
     mock_request.return_value.content = 'true'
 
-    graph.delete(1)
+    graph.delete('1')
 
-    mock_request.assert_called_with('DELETE', 'https://graph.facebook.com/1',
-        allow_redirects = True,
-        params = {
+    mock_request.assert_called_with(
+        'DELETE',
+        'https://graph.facebook.com/1',
+        allow_redirects=True,
+        params={
             'access_token': '<access token>'
         }
     )
+
 
 @with_setup(mock, unmock)
 def test_forbidden_delete():
@@ -272,6 +323,7 @@ def test_forbidden_delete():
     mock_request.return_value.content = 'false'
 
     assert_raises(GraphAPI.FacebookError, graph.delete, 'me')
+
 
 @with_setup(mock, unmock)
 def test_search():
@@ -289,24 +341,28 @@ def test_search():
     })
 
     graph.search(
-        term = 'shaft quotes',
-        type = 'post'
+        term='shaft quotes',
+        type='post'
     )
 
-    mock_request.assert_called_with('GET', 'https://graph.facebook.com/search',
-        allow_redirects = True,
-        params = {
+    mock_request.assert_called_with(
+        'GET',
+        'https://graph.facebook.com/search',
+        allow_redirects=True,
+        params={
             'q': 'shaft quotes',
             'type': 'post',
             'access_token': '<access token>'
         }
     )
 
+
 @with_setup(mock, unmock)
 def test_invalid_search():
     graph = GraphAPI('<access token>')
 
     assert_raises(ValueError, graph.search, 'shaft', 'movies')
+
 
 @with_setup(mock, unmock)
 def test_batch():
@@ -316,31 +372,39 @@ def test_batch():
         {
             'code': 200,
             'headers': [
-                { 'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8' }
+                {'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8'}
             ],
             'body': '{"foo": "bar"}'
         }
     ])
 
     requests = [
-        { 'method': 'GET', 'relative_url': 'me/friends' },
-        { 'method': 'GET', 'relative_url': 'me/photos' }
+        {'method': 'GET', 'relative_url': 'me/friends'},
+        {'method': 'GET', 'relative_url': 'me/photos'},
+        {'method': 'POST', 'relative_url': 'me/feed', 'body': {'message': 'Hi me.'}}
     ]
 
     batch = graph.batch(
-        requests = requests
+        requests=requests
     )
 
     for item in batch:
         pass
 
-    mock_request.assert_called_with('POST', 'https://graph.facebook.com/',
-        files = {},
-        data = {
-            'batch': json.dumps(requests),
+    mock_request.assert_called_with(
+        'POST',
+        'https://graph.facebook.com/',
+        files={},
+        data={
+            'batch': json.dumps([
+                {'method': 'GET', 'relative_url': 'me/friends'},
+                {'method': 'GET', 'relative_url': 'me/photos'},
+                {'method': 'POST', 'relative_url': 'me/feed', 'body': 'message=Hi+me.'}
+            ]),
             'access_token': '<access token>'
         }
     )
+
 
 @with_setup(mock, unmock)
 def test_batch_with_empty_responses():
@@ -351,22 +415,23 @@ def test_batch_with_empty_responses():
         {
             'code': 200,
             'headers': [
-                { 'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8' }
+                {'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8'}
             ],
             'body': '{"foo": "bar"}'
         }
     ])
 
     requests = [
-        { 'method': 'GET', 'relative_url': 'me/friends' },
-        { 'method': 'GET', 'relative_url': 'me/photos' }
+        {'method': 'GET', 'relative_url': 'me/friends'},
+        {'method': 'GET', 'relative_url': 'me/photos'}
     ]
 
     batch = graph.batch(
-        requests = requests
+        requests=requests
     )
 
-    assert list(batch) == [None, { 'foo': 'bar' }]
+    assert list(batch) == [None, {'foo': 'bar'}]
+
 
 @with_setup(mock, unmock)
 def test_batch_with_errors():
@@ -376,22 +441,22 @@ def test_batch_with_errors():
         {
             'code': 200,
             'headers': [
-                { 'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8' }
+                {'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8'}
             ],
             'body': '{"foo": "bar"}'
         },
         {
             'code': 500,
             'headers': [
-                { 'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8' }
+                {'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8'}
             ],
             'body': '{"error_code": 1, "error_msg": "An unknown error occurred"}'
         }
     ])
 
     requests = [
-        { 'method': 'GET', 'relative_url': 'me/friends' },
-        { 'method': 'GET', 'relative_url': 'me' }
+        {'method': 'GET', 'relative_url': 'me/friends'},
+        {'method': 'GET', 'relative_url': 'me'}
     ]
 
     batch = graph.batch(requests)
@@ -401,6 +466,7 @@ def test_batch_with_errors():
     assert isinstance(responses[0], dict)
     assert isinstance(responses[1], Exception)
 
+
 @with_setup(mock, unmock)
 def test_batch_error_references_request():
     graph = GraphAPI('<access token>')
@@ -409,14 +475,14 @@ def test_batch_error_references_request():
         {
             'code': 500,
             'headers': [
-                { 'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8' }
+                {'name': 'Content-Type', 'value': 'text/javascript; charset=UTF-8'}
             ],
             'body': '{"error_code": 1, "error_msg": "An unknown error occurred"}'
         }
     ])
 
     requests = [
-        { 'method': 'GET', 'relative_url': 'me' }
+        {'method': 'GET', 'relative_url': 'me'}
     ]
 
     batch = graph.batch(requests)
@@ -424,6 +490,7 @@ def test_batch_error_references_request():
     responses = list(batch)
 
     assert_equal(responses[0].request, requests[0])
+
 
 @with_setup(mock, unmock)
 def test_oauth_error():
@@ -439,6 +506,7 @@ def test_oauth_error():
 
     assert_raises(GraphAPI.OAuthError, graph.get, 'me')
 
+
 @with_setup(mock, unmock)
 def test_query_transport_error():
     graph = GraphAPI('<access token>')
@@ -446,6 +514,7 @@ def test_query_transport_error():
     mock_request.side_effect = ConnectionError('Max retries exceeded with url: /')
 
     assert_raises(GraphAPI.HTTPError, graph.get, 'me')
+
 
 @with_setup(mock, unmock)
 def test_retry():
