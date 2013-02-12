@@ -262,6 +262,8 @@ class GraphAPI(object):
             data = json.loads(data)
         except ValueError:
             return data
+        except TypeError:
+            raise FacepyError("Get bad response back from server of type %s: %s" % (type(data), data))
 
         # Facebook's Graph API sometimes responds with 'true' or 'false'. Facebook offers no documentation
         # as to the prerequisites for this type of response, though it seems that it responds with 'true'
